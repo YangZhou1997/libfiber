@@ -165,6 +165,7 @@ static rlim_t max_fd = 0;
 
 int fiber_io_init()
 {
+    // @yang, get the original io functions. 
     //fibershim_open = (openFnType)dlsym(RTLD_NEXT, "open");
     fibershim_pipe = (pipeFnType)dlsym(RTLD_NEXT, "pipe");
     fibershim_read = (readFnType)dlsym(RTLD_NEXT, "read");
@@ -295,6 +296,8 @@ int accept(ACCEPTPARAMS)
 
     int sock = fibershim_accept(sockfd, addr, addrlen);
     if(sock < 0 && (errno == EWOULDBLOCK || errno == EAGAIN) && should_block(sockfd)) {
+        // @yang, this first adds socket event to epoll(), 
+        // then yields the current fiber and run next ready fiber (fiber_manager_yield()). 
         if(!fiber_wait_for_event(sockfd, FIBER_POLL_IN)) {
             return -1;
         }

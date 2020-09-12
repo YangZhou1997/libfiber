@@ -162,6 +162,8 @@ void fiber_context_swap(fiber_context_t* from_context, fiber_context_t* to_conte
     assert(from_context);
     assert(to_context);
 
+    // @yang, ctx_stack_pointer is a pointer to the memory location (in the fiber's stack) 
+    // where the stackpointer is saved (in the fiber's stack).
     void*** const from_sp = &from_context->ctx_stack_pointer;
     void** const to_sp = to_context->ctx_stack_pointer;
 

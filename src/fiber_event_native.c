@@ -209,6 +209,7 @@ static void fiber_event_wake_waiters(fiber_manager_t* manager, fd_wait_info_t* i
         to_schedule->scratch = NULL;
         to_schedule->state = FIBER_STATE_READY;
         to_schedule->scratch = (void*)result;
+        // @yang, put any fibers got from epoll triggered events to the scheduling queue. 
         fiber_manager_schedule(manager, to_schedule);
     }
 }
@@ -224,6 +225,7 @@ static void fiber_event_wake_sleepers(fiber_manager_t* manager, uint64_t trigger
             assert(to_wake->waiter);
             fiber_t* const to_schedule = (fiber_t*)to_wake->waiter;
             to_schedule->state = FIBER_STATE_READY;
+            // @yang, put any fibers got from timer to the scheduling queue. 
             fiber_manager_schedule(manager, to_schedule);
             to_wake = to_wake->next;
         } while(to_wake);

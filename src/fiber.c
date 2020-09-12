@@ -70,6 +70,7 @@ mpmc_lifo_t fiber_free_fibers = MPMC_LIFO_INITIALIZER;
 
 fiber_t* fiber_create_no_sched(size_t stack_size, fiber_run_function_t run_function, void* param)
 {
+    // @yang, node is just the fiber object. 
     mpsc_fifo_node_t* const node = mpmc_lifo_pop(&fiber_free_fibers);
     fiber_t* ret = NULL;
     if(!node) {

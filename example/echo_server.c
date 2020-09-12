@@ -67,6 +67,8 @@ int main()
     int sock;
     while((sock = accept(server_socket, NULL, NULL)) >= 0) {
         fiber_t* client_fiber = fiber_create(10240, &client_function, (void*)(intptr_t)sock);
+        // @yang, I guess every fiber will first added to the main_manager, 
+        // then stolen to other managers on other thread. 
         fiber_detach(client_fiber);
     }
 

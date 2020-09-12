@@ -182,6 +182,7 @@ static void* fiber_manager_thread_func(void* param)
 #ifdef USE_COMPILER_THREAD_LOCAL
     fiber_the_manager = (fiber_manager_t*)param;
 #else
+    // @yang, put the fiber_manager to each thread local storage
     const int ret = pthread_setspecific(fiber_manager_key, param);
     if(ret) {
         assert(0 && "pthread_setspecific() failed!");
@@ -198,15 +199,17 @@ static void* fiber_manager_thread_func(void* param)
 
     while(!fiber_shutting_down) {
         fiber_scheduler_load_balance(manager->scheduler);
-
+        // @yang, check if there are any ready fiber to schedule
         fiber_t* const new_fiber = fiber_scheduler_next(manager->scheduler);
         if(new_fiber) {
             //make this fiber wait so we aren't scheduled again until all work is done
             manager->maintenance_fiber->state = FIBER_STATE_SAVING_STATE_TO_WAIT;
             fiber_manager_switch_to(manager, manager->maintenance_fiber, new_fiber);
         } else {
+            // @yang, this will pull ready fibers got from epoll() or timer, and add to the scheduling queue. 
             const int num_events = fiber_poll_events();
-            if(num_events == 0) {
+            if(num_events == 0) { // @yang, no ready fibers in scheduling queue, and no triggerred event or timer. 
+                // @yang, this core/thread becomes idle, waiting 5ms for new event/timer fired. 
                 fiber_poll_events_blocking(0, FIBER_TIME_RESOLUTION_MS * 1000);
             }
         }
@@ -222,24 +225,28 @@ int fiber_manager_init(size_t num_threads)
         errno = EINVAL;
         return FIBER_ERROR;
     }
-
+    
+    //@yang, spin up one fiber_scheduler on each thread
     const int sched_ret = fiber_scheduler_init(num_threads);
     if(!sched_ret) {
         return FIBER_ERROR;
     }
 
+    //@yang, each thread runs a fiber_manager_thread
     fiber_manager_threads = calloc(num_threads, sizeof(*fiber_manager_threads));
     assert(fiber_manager_threads);
     fiber_manager_num_threads = num_threads;
     fiber_managers = calloc(num_threads, sizeof(*fiber_managers));
     assert(fiber_managers);
 
+    //@yang, main_manager contains the first fiber_scheduler. 
     fiber_manager_t* const main_manager = fiber_manager_create(fiber_scheduler_for_thread(0));
     assert(main_manager);
 
 #ifdef USE_COMPILER_THREAD_LOCAL
     fiber_the_manager = main_manager;
 #else
+    // @yang, storing the first main_manager to pthread local storage. 
     const int ret = pthread_setspecific(fiber_manager_key, main_manager);
     if(ret) {
         assert(0 && "pthread_setspecific() failed!");

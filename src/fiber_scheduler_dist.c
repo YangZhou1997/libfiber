@@ -47,6 +47,7 @@ int fiber_scheduler_init(size_t num_threads)
     assert(num_threads > 0);
     fiber_scheduler_num_threads = num_threads;
 
+    //@yang, each thread has a fiber_scheduler
     fiber_schedulers = calloc(num_threads, sizeof(*fiber_schedulers));
     assert(fiber_schedulers);
 
